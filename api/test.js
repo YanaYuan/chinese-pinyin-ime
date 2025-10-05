@@ -1,5 +1,5 @@
-// Vercel Serverless Function for testing API configuration
-export default async function handler(req, res) {
+// Vercel Serverless Function for testing API configuration  
+module.exports = async function handler(req, res) {
     // 设置 CORS 头
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
