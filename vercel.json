@@ -1,8 +1,14 @@
 {
+  "outputDirectory": "IME4",
+  "functions": {
+    "api/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/",
-      "destination": "/IME4/index.html"
+      "destination": "/index.html"
     }
   ],
   "headers": [
