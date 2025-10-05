@@ -111,6 +111,13 @@ class ChinesePinyinIME {
             // 判断是否为生产环境
             const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
             
+            console.log('API Call Debug:', {
+                hostname: window.location.hostname,
+                isProduction,
+                hasApiKey: !!this.apiKey,
+                hasApiEndpoint: !!this.apiEndpoint
+            });
+            
             // 在本地开发环境检查API配置
             if (!isProduction && (!this.apiKey || !this.apiEndpoint)) {
                 throw new Error('API配置未完成，请联系管理员');
