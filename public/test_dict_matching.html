@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>词库候选测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .candidate {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f0f8f0;
+            border-left: 4px solid #4CAF50;
+        }
+        .debug {
+            background: #fff3cd;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>词库候选匹配测试</h1>
+    
+    <input type="text" class="test-input" id="testInput" placeholder="输入拼音测试，如: xi">
+    
+    <h3>调试信息：</h3>
+    <div id="debug"></div>
+    
+    <h3>候选结果：</h3>
+    <div id="results"></div>
+
+    <script>
+        let dictionary = null;
+        
+        // 加载词库
+        fetch('Pinyin/dict.json')
+            .then(r => r.json())
+            .then(data => {
+                dictionary = data;
+                console.log('✅ 词库加载成功:', data.length, '条');
+            });
+        
+        document.getElementById('testInput').addEventListener('input', (e) => {
+            const pinyin = e.target.value.trim();
+            if (!pinyin || !dictionary) return;
+            
+            testMatch(pinyin);
+        });
+        
+        function testMatch(pinyin) {
+            const debugDiv = document.getElementById('debug');
+            const resultsDiv = document.getElementById('results');
+            
+            const normalizedPinyin = pinyin.toLowerCase().replace(/\s+/g, '');
+            
+            let debugHTML = `<strong>输入:</strong> "${pinyin}"<br>`;
+            debugHTML += `<strong>标准化后:</strong> "${normalizedPinyin}"<br><br>`;
+            
+            const matches = dictionary.filter(entry => {
+                const entryPinyinNoSpace = entry.Pinyin.toLowerCase().replace(/\s+/g, '');
+                const entryPinyinWithSpace = entry.Pinyin.toLowerCase();
+                const inputLower = pinyin.toLowerCase();
+                
+                // 完全匹配
+                if (entryPinyinNoSpace === normalizedPinyin) {
+                    debugHTML += `✅ 完全匹配: ${entry.Chinese} (${entry.Pinyin})<br>`;
+                    return true;
+                }
+                
+                // 音节边界匹配
+                if (entryPinyinWithSpace.startsWith(inputLower + ' ')) {
+                    debugHTML += `✅ 音节匹配: ${entry.Chinese} (${entry.Pinyin})<br>`;
+                    return true;
+                }
+                
+                // 测试为什么会匹配
+                if (entry.Chinese === '下' || entry.Chinese === '现在' || entry.Chinese === '想' || entry.Chinese === '小') {
+                    debugHTML += `❌ 不匹配但在测试: ${entry.Chinese} (${entry.Pinyin})<br>`;
+                    debugHTML += `&nbsp;&nbsp;&nbsp;- "${entryPinyinNoSpace}" === "${normalizedPinyin}": ${entryPinyinNoSpace === normalizedPinyin}<br>`;
+                    debugHTML += `&nbsp;&nbsp;&nbsp;- "${entryPinyinWithSpace}".startsWith("${inputLower} "): ${entryPinyinWithSpace.startsWith(inputLower + ' ')}<br>`;
+                }
+                
+                return false;
+            });
+            
+            // 排序
+            matches.sort((a, b) => {
+                const aPinyin = a.Pinyin.toLowerCase().replace(/\s+/g, '');
+                const bPinyin = b.Pinyin.toLowerCase().replace(/\s+/g, '');
+                
+                const aExactMatch = aPinyin === normalizedPinyin;
+                const bExactMatch = bPinyin === normalizedPinyin;
+                
+                if (aExactMatch && !bExactMatch) return -1;
+                if (!aExactMatch && bExactMatch) return 1;
+                
+                return b.Frequency - a.Frequency;
+            });
+            
+            debugHTML += `<br><strong>匹配数量:</strong> ${matches.length}`;
+            debugDiv.innerHTML = debugHTML;
+            
+            // 显示结果
+            resultsDiv.innerHTML = matches.slice(0, 10).map((item, i) => 
+                `<div class="candidate">[${i+1}] ${item.Chinese} - ${item.Pinyin} (频率: ${item.Frequency})</div>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>

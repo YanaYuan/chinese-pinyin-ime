@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中文拼音输入法</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>中文拼音输入法</h1>
+            <p>输入拼音，AI自动转换为中文</p>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <div class="input-container">
+                    <label for="pinyin-input">拼音输入：</label>
+                    <input type="text" id="pinyin-input" placeholder="请输入拼音，如：nihao" autocomplete="off">
+                    <span id="pinyin-mode-indicator" class="pinyin-mode-indicator" style="display: none;">
+                        📚 拼音模式
+                    </span>
+                </div>
+                
+                <div class="suggestions" id="suggestions"></div>
+                
+                <!-- 词库纠正区 -->
+                <div class="dict-correction-section" id="dict-correction-section" style="display: none;">
+                    <div class="correction-header">
+                        <label for="correction-pinyin-input">🔧 拼音纠正输入：</label>
+                        <span class="correction-hint">请输入正确的拼音（如：wo fa shao）</span>
+                    </div>
+                    <input type="text" id="correction-pinyin-input" class="correction-input" placeholder="输入需要纠正的拼音..." autocomplete="off">
+                    <div class="dict-candidates-section" id="dict-candidates">
+                        <div class="dict-placeholder">输入拼音查看词库候选...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <label for="text-output">中文输出：</label>
+                <textarea id="text-output" placeholder="转换后的中文将显示在这里..." readonly></textarea>
+                <div class="output-controls">
+                    <button id="clear-btn">清空</button>
+                    <button id="copy-btn">复制</button>
+                </div>
+            </div>
+
+            <div class="status" id="status"></div>
+        </main>
+
+        <footer>
+            <p>基于 Azure OpenAI GPT-4o 的智能拼音输入法</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

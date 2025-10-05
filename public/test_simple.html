@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Azure OpenAI 快速测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-family: monospace;
+        }
+        button {
+            padding: 12px 30px;
+            background: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover { background: #106ebe; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Azure OpenAI 配置测试</h1>
+    
+    <div class="input-group">
+        <label>资源端点 (去掉末尾的斜杠):</label>
+        <input type="text" id="endpoint" value="https://yanaus9931.openai.azure.com">
+    </div>
+
+    <div class="input-group">
+        <label>API 密钥:</label>
+        <input type="text" id="apikey" value="" placeholder="请输入你的Azure OpenAI API Key">
+    </div>
+
+    <div class="input-group">
+        <label>部署名称 (需要你提供):</label>
+        <input type="text" id="deployment" placeholder="例如: gpt-4o, gpt-4, my-deployment">
+    </div>
+
+    <button onclick="testAPI()">测试 API</button>
+    <button onclick="tryCommonNames()" style="background: #28a745;">尝试常见名称</button>
+
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            const endpoint = document.getElementById('endpoint').value.trim();
+            const apiKey = document.getElementById('apikey').value.trim();
+            const deployment = document.getElementById('deployment').value.trim();
+
+            if (!deployment) {
+                resultDiv.className = 'result error';
+                resultDiv.style.display = 'block';
+                resultDiv.textContent = '❌ 请输入部署名称！';
+                return;
+            }
+
+            resultDiv.className = 'result info';
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '测试中...';
+
+            const url = `${endpoint}/openai/deployments/${deployment}/chat/completions?api-version=2024-10-21`;
+            
+            console.log('测试URL:', url);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            { role: "user", content: "Hello" }
+                        ],
+                        max_tokens: 10
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 成功！\n\n部署名称: ${deployment}\n\n完整URL:\n${url}\n\nAI响应:\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 失败 (状态码: ${response.status})\n\n完整URL:\n${url}\n\n错误详情:\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 请求异常: ${error.message}`;
+            }
+        }
+
+        async function tryCommonNames() {
+            const resultDiv = document.getElementById('result');
+            const endpoint = document.getElementById('endpoint').value.trim();
+            const apiKey = document.getElementById('apikey').value.trim();
+
+            const names = [
+                'gpt-4o',
+                'gpt-4o-mini',
+                'gpt-4',
+                'gpt-35-turbo',
+                'gpt-35-turbo-16k',
+                'gpt4',
+                'chatgpt',
+                'my-gpt-4o'
+            ];
+
+            resultDiv.className = 'result info';
+            resultDiv.style.display = 'block';
+            resultDiv.textContent = '正在尝试常见部署名称...\n';
+
+            for (const name of names) {
+                const url = `${endpoint}/openai/deployments/${name}/chat/completions?api-version=2024-10-21`;
+                resultDiv.textContent += `\n测试: ${name} ...`;
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'api-key': apiKey
+                        },
+                        body: JSON.stringify({
+                            messages: [{ role: "user", content: "hi" }],
+                            max_tokens: 5
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        resultDiv.className = 'result success';
+                        resultDiv.textContent = `✅ 找到了！\n\n正确的部署名称是: ${name}\n\n完整URL:\n${url}\n\nAI响应:\n${JSON.stringify(data, null, 2)}`;
+                        document.getElementById('deployment').value = name;
+                        return;
+                    } else {
+                        resultDiv.textContent += ` ❌ (${response.status})`;
+                    }
+                } catch (error) {
+                    resultDiv.textContent += ` ❌ (错误)`;
+                }
+
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+
+            resultDiv.className = 'result error';
+            resultDiv.textContent += '\n\n❌ 未找到可用的部署名称\n\n请检查:\n1. API密钥是否正确\n2. 登录 Azure Portal 查看实际的部署名称\n3. 确认资源地址正确';
+        }
+    </script>
+
+    <hr style="margin: 40px 0;">
+    <h2>📋 如何查找部署名称？</h2>
+    <ol>
+        <li>登录 <a href="https://portal.azure.com" target="_blank">Azure Portal</a></li>
+        <li>找到你的 Azure OpenAI 资源 (yanaus9931)</li>
+        <li>点击左侧菜单的 "模型部署" 或 "Deployments"</li>
+        <li>查看列表中的 "部署名称" 列</li>
+        <li>复制正确的部署名称到上面的输入框</li>
+    </ol>
+</body>
+</html>

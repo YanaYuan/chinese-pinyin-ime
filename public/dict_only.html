@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>纯词库拼音输入法</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>中文拼音输入法</h1>
+            <p>纯词库版本 - 离线使用</p>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <div class="input-container">
+                    <label for="pinyin-input">拼音输入：</label>
+                    <input type="text" id="pinyin-input" placeholder="请输入拼音，如：nihao" autocomplete="off">
+                </div>
+                
+                <!-- 词库候选区 -->
+                <div class="dict-candidates-section" id="dict-candidates" style="display: block;">
+                    <div class="dict-placeholder">输入拼音查看候选词</div>
+                </div>
+            </div>
+
+            <div class="output-section">
+                <label for="text-output">中文输出：</label>
+                <textarea id="text-output" placeholder="转换后的中文将显示在这里..." readonly></textarea>
+                <div class="output-controls">
+                    <button id="clear-btn">清空</button>
+                    <button id="copy-btn">复制</button>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>基于本地词库的纯拼音输入法 - 65125个词条</p>
+        </footer>
+    </div>
+
+    <script>
+        let dictionary = null;
+
+        // 加载词库
+        async function loadDictionary() {
+            try {
+                const response = await fetch('Pinyin/dict.json');
+                dictionary = await response.json();
+                console.log('词库加载成功，包含词条:', dictionary.length);
+            } catch (error) {
+                console.error('词库加载失败:', error);
+            }
+        }
+
+        // 获取词库候选
+        function getDictCandidates(pinyin) {
+            if (!dictionary) return [];
+            
+            const normalizedPinyin = pinyin.toLowerCase().replace(/\s+/g, '');
+            
+            return dictionary
+                .filter(entry => {
+                    const entryPinyin = entry.Pinyin.toLowerCase().replace(/\s+/g, '');
+                    return entryPinyin.startsWith(normalizedPinyin);
+                })
+                .sort((a, b) => b.Frequency - a.Frequency)
+                .slice(0, 15);
+        }
+
+        // 更新词库候选
+        function updateDictCandidates(pinyin) {
+            const dictDiv = document.getElementById('dict-candidates');
+            const candidates = getDictCandidates(pinyin);
+            dictDiv.innerHTML = '';
+            
+            if (candidates.length === 0) {
+                dictDiv.innerHTML = '<div class="dict-placeholder">未找到匹配的词条</div>';
+                return;
+            }
+            
+            candidates.forEach((candidate, index) => {
+                const item = document.createElement('div');
+                item.className = 'dict-candidate-item';
+                item.innerHTML = `
+                    <span class="dict-number">[${index + 1}]</span>
+                    <span class="dict-word">${candidate.Chinese}</span>
+                    <span class="dict-pinyin">${candidate.Pinyin}</span>
+                `;
+                
+                item.addEventListener('click', () => {
+                    selectCandidate(candidate.Chinese);
+                });
+                
+                dictDiv.appendChild(item);
+            });
+        }
+
+        // 选择候选
+        function selectCandidate(word) {
+            const output = document.getElementById('text-output');
+            output.value += word;
+            document.getElementById('pinyin-input').value = '';
+            document.getElementById('dict-candidates').innerHTML = '<div class="dict-placeholder">输入拼音查看候选词</div>';
+            document.getElementById('pinyin-input').focus();
+        }
+
+        // 初始化
+        loadDictionary();
+
+        // 输入监听
+        document.getElementById('pinyin-input').addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            if (value) {
+                updateDictCandidates(value);
+            } else {
+                document.getElementById('dict-candidates').innerHTML = '<div class="dict-placeholder">输入拼音查看候选词</div>';
+            }
+        });
+
+        // 清空
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            document.getElementById('pinyin-input').value = '';
+            document.getElementById('text-output').value = '';
+            document.getElementById('dict-candidates').innerHTML = '<div class="dict-placeholder">输入拼音查看候选词</div>';
+        });
+
+        // 复制
+        document.getElementById('copy-btn').addEventListener('click', async () => {
+            const text = document.getElementById('text-output').value;
+            if (text) {
+                await navigator.clipboard.writeText(text);
+                alert('已复制到剪贴板');
+            }
+        });
+    </script>
+</body>
+</html>

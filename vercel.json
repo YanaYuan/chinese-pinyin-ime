@@ -2,11 +2,7 @@
   "rewrites": [
     {
       "source": "/",
-      "destination": "/IME4/index.html"
-    },
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/IME4/$1"
+      "destination": "/index.html"
     }
   ],
   "headers": [
