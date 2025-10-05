@@ -1,15 +1,12 @@
 {
-  "version": 2,
-  "buildCommand": "echo 'Static site, no build needed'",
-  "outputDirectory": "IME4",
   "rewrites": [
     {
       "source": "/",
-      "destination": "/index.html"
+      "destination": "/IME4/index.html"
     },
     {
-      "source": "/(.*)",
-      "destination": "/$1"
+      "source": "/IME4/(.*)",
+      "destination": "/IME4/$1"
     }
   ],
   "headers": [
@@ -30,10 +27,5 @@
         }
       ]
     }
-  ],
-  "functions": {
-    "IME4/api/*.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  ]
 }
