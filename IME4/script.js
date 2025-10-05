@@ -4,8 +4,9 @@ class ChinesePinyinIME {
         this.apiEndpoint = this.getApiEndpoint();
         this.apiKey = this.getApiKey();
         
-        // 检查API配置是否完整
-        if (!this.apiKey || !this.apiEndpoint) {
+        // 检查API配置是否完整（仅在本地开发环境显示警告）
+        const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (isLocalDev && (!this.apiKey || !this.apiEndpoint)) {
             console.warn('⚠️ API配置未完成，某些功能可能无法使用');
             console.warn('请检查环境变量配置或联系开发者');
             this.showConfigWarning();
@@ -107,13 +108,13 @@ class ChinesePinyinIME {
         const { max_tokens = 150, temperature = 0.3 } = options;
         
         try {
-            // 检查是否配置了API
-            if (!this.apiKey || !this.apiEndpoint) {
+            // 判断是否为生产环境
+            const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+            
+            // 在本地开发环境检查API配置
+            if (!isProduction && (!this.apiKey || !this.apiEndpoint)) {
                 throw new Error('API配置未完成，请联系管理员');
             }
-            
-            // 优先使用 Vercel serverless function（生产环境）
-            const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
             
             if (isProduction) {
                 // 使用 Vercel serverless function
