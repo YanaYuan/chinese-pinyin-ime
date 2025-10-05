@@ -1,12 +1,9 @@
 {
+  "outputDirectory": "IME4",
   "rewrites": [
     {
       "source": "/",
-      "destination": "/IME4/index.html"
-    },
-    {
-      "source": "/IME4/(.*)",
-      "destination": "/IME4/$1"
+      "destination": "/index.html"
     }
   ],
   "headers": [
