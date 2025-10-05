@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Azure OpenAI 诊断工具</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .input-group {
+            margin: 20px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 12px 30px;
+            background: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        button:hover { background: #106ebe; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .deployment-list {
+            list-style: none;
+            padding: 0;
+        }
+        .deployment-list li {
+            padding: 10px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-left: 4px solid #0078d4;
+            cursor: pointer;
+        }
+        .deployment-list li:hover {
+            background: #e9ecef;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Azure OpenAI 配置诊断工具</h1>
+        
+        <div class="input-group">
+            <label>Azure OpenAI 端点 (Endpoint):</label>
+            <input type="text" id="endpoint" value="https://yana-yuanus-9931-resource.openai.azure.com/" placeholder="https://your-resource.openai.azure.com/">
+        </div>
+
+        <div class="input-group">
+            <label>API 密钥 (API Key):</label>
+            <input type="text" id="apikey" value="" placeholder="请输入你的Azure OpenAI API Key">
+        </div>
+
+        <div class="input-group">
+            <label>部署名称 (Deployment Name) - 留空自动检测:</label>
+            <input type="text" id="deployment" placeholder="如: gpt-4o, gpt-35-turbo 等">
+        </div>
+
+        <div class="input-group">
+            <label>API 版本:</label>
+            <select id="apiversion" style="width: 100%; padding: 10px;">
+                <option value="2024-10-21">2024-10-21 (推荐)</option>
+                <option value="2024-08-01-preview">2024-08-01-preview</option>
+                <option value="2024-06-01">2024-06-01</option>
+                <option value="2024-02-01">2024-02-01</option>
+                <option value="2023-12-01-preview">2023-12-01-preview</option>
+            </select>
+        </div>
+
+        <button onclick="testDeployment()">测试指定部署</button>
+        <button onclick="findDeployments()" style="background: #28a745;">查找可用部署</button>
+
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        async function testDeployment() {
+            const resultDiv = document.getElementById('result');
+            const endpoint = document.getElementById('endpoint').value.trim();
+            const apiKey = document.getElementById('apikey').value.trim();
+            const deployment = document.getElementById('deployment').value.trim();
+            const apiVersion = document.getElementById('apiversion').value;
+
+            if (!deployment) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'result error';
+                resultDiv.textContent = '❌ 请输入部署名称，或点击"查找可用部署"按钮';
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '正在测试...';
+
+            const baseUrl = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+            const testUrl = `${baseUrl}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+
+            try {
+                const response = await fetch(testUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        messages: [{ role: "user", content: "hi" }],
+                        max_tokens: 10
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ 测试成功！\n\n部署名称: ${deployment}\nAPI版本: ${apiVersion}\n\n完整URL:\n${testUrl}\n\nAI回复: ${data.choices[0].message.content}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ 测试失败\n\n状态码: ${response.status}\n错误: ${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 请求失败: ${error.message}`;
+            }
+        }
+
+        async function findDeployments() {
+            const resultDiv = document.getElementById('result');
+            const endpoint = document.getElementById('endpoint').value.trim();
+            const apiKey = document.getElementById('apikey').value.trim();
+            const apiVersion = document.getElementById('apiversion').value;
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result info';
+            resultDiv.textContent = '正在查找可用的部署...';
+
+            const baseUrl = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
+            
+            // 常见的部署名称
+            const commonDeployments = [
+                'gpt-4o',
+                'gpt-4',
+                'gpt-4-32k',
+                'gpt-35-turbo',
+                'gpt-35-turbo-16k',
+                'text-embedding-ada-002',
+                'text-davinci-003',
+                // 可能的自定义名称
+                'my-gpt4',
+                'my-gpt-4o',
+                'chatgpt',
+                'deployment1'
+            ];
+
+            let foundDeployments = [];
+            let tested = 0;
+
+            for (const deployment of commonDeployments) {
+                tested++;
+                resultDiv.textContent = `正在测试 ${tested}/${commonDeployments.length}: ${deployment}...`;
+
+                const testUrl = `${baseUrl}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+
+                try {
+                    const response = await fetch(testUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'api-key': apiKey
+                        },
+                        body: JSON.stringify({
+                            messages: [{ role: "user", content: "hi" }],
+                            max_tokens: 5
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        foundDeployments.push({
+                            name: deployment,
+                            url: testUrl,
+                            response: data.choices[0].message.content
+                        });
+                    }
+                } catch (error) {
+                    // 忽略错误，继续测试
+                }
+
+                // 添加小延迟避免请求过快
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            if (foundDeployments.length > 0) {
+                resultDiv.className = 'result success';
+                let html = `✅ 找到 ${foundDeployments.length} 个可用部署:\n\n`;
+                html += '<ul class="deployment-list">';
+                foundDeployments.forEach(dep => {
+                    html += `<li onclick="useDeployment('${dep.name}')">${dep.name} - 点击使用</li>`;
+                });
+                html += '</ul>';
+                html += '\n点击部署名称自动填入';
+                resultDiv.innerHTML = html;
+            } else {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 未找到可用的部署\n\n可能原因:\n1. API密钥不正确\n2. 资源没有部署任何模型\n3. 部署名称不在常见列表中\n\n建议: 登录Azure Portal查看实际的部署名称`;
+            }
+        }
+
+        function useDeployment(name) {
+            document.getElementById('deployment').value = name;
+            testDeployment();
+        }
+    </script>
+</body>
+</html>

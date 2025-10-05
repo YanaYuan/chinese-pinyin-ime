@@ -1,0 +1,30 @@
+{
+  "name": "chinese-pinyin-ime",
+  "version": "1.0.0",
+  "description": "基于AI的智能中文拼音输入法Web应用",
+  "main": "IME4/index.html",
+  "scripts": {
+    "start": "npx http-server IME4 -p 8000",
+    "dev": "npx http-server IME4 -p 8000 -c-1",
+    "build": "echo 'This is a static website, no build needed'",
+    "preview": "npx http-server IME4 -p 3000"
+  },
+  "keywords": [
+    "pinyin",
+    "chinese",
+    "ime",
+    "input-method",
+    "ai",
+    "web-app"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "homepage": "."
+}

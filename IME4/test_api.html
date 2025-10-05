@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>测试 Azure OpenAI API</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Azure OpenAI API 测试</h1>
+    <p>点击按钮测试你的API配置</p>
+    <button onclick="testAPI()">测试 API</button>
+    <div id="result" class="result"></div>
+
+    <script>
+        async function testAPI() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = '正在测试...';
+            resultDiv.className = 'result';
+
+            const apiEndpoint = 'https://yana-yuanus-9931-resource.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-10-21';
+            const apiKey = ''; // 请在此处填入你的Azure OpenAI API密钥
+
+            try {
+                const response = await fetch(apiEndpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': apiKey
+                    },
+                    body: JSON.stringify({
+                        messages: [
+                            {
+                                role: "user",
+                                content: "你好"
+                            }
+                        ],
+                        max_tokens: 50
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ API 测试成功！\n\n响应状态: ${response.status}\n\nAI回复: ${data.choices[0].message.content}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ API 测试失败\n\n状态码: ${response.status} ${response.statusText}\n\n错误详情:\n${JSON.stringify(data, null, 2)}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ 请求失败\n\n错误信息: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
