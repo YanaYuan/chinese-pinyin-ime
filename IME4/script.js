@@ -308,7 +308,7 @@ class ChinesePinyinIME {
         try {
             this.showStatus('正在转换...', 'loading');
 
-            const result = await this.callOpenAI(pinyin);
+            const result = await this.callOpenAIForPinyin(pinyin);
             
             this.displaySuggestions(result.suggestions || []);
             
@@ -325,57 +325,41 @@ class ChinesePinyinIME {
         }
     }
 
-    async callOpenAI(pinyin) {
+    async callOpenAIForPinyin(pinyin) {
         const prompt = `请将拼音"${pinyin}"转换为中文。只返回1个跟拼音最匹配的候选，不要其他说明。`;
 
-        const requestBody = {
-            messages: [
-                {
-                    role: "system",
-                    content: "你是一个专业的中文拼音输入法转换器。请将用户输入的拼音转换为对应的中文字符。"
-                },
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ],
-            max_tokens: 150,
-            temperature: 0.3,
-            top_p: 0.9
-        };
-
-        const response = await fetch(this.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': this.apiKey
+        const messages = [
+            {
+                role: "system",
+                content: "你是一个专业的中文拼音输入法转换器。请将用户输入的拼音转换为对应的中文字符。"
             },
-            body: JSON.stringify(requestBody)
-        });
+            {
+                role: "user",
+                content: prompt
+            }
+        ];
 
-        if (!response.ok) {
-            throw new Error(`API请求失败: ${response.status} ${response.statusText}`);
+        try {
+            // 使用统一的API调用方法
+            const content = await this.callOpenAI(messages, {
+                max_tokens: 150,
+                temperature: 0.3
+            });
+
+            console.log('AI转换结果:', content);
+
+            // 直接使用AI返回的内容作为第一个候选词
+            const firstSuggestion = content.trim();
+            const finalSuggestions = [firstSuggestion];
+            
+            // 立即显示第一个选项
+            this.displaySuggestions(finalSuggestions, false);
+            
+            return { suggestions: finalSuggestions };
+        } catch (error) {
+            console.error('AI转换失败:', error);
+            throw error;
         }
-
-        const data = await response.json();
-        console.log('API响应数据:', data); // 添加调试日志
-        
-        // 检查数据结构是否符合预期
-        if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
-            console.error('API响应结构异常:', data);
-            throw new Error('API响应格式不正确');
-        }
-        
-        const content = data.choices[0].message.content.trim();
-
-        // 直接使用AI返回的内容作为第一个候选词
-        const firstSuggestion = content;
-        const finalSuggestions = [firstSuggestion];
-        
-        // 立即显示第一个选项
-        this.displaySuggestions(finalSuggestions, false);
-        
-        return { suggestions: finalSuggestions };
     }
 
     async getOptimizedText(text) {
