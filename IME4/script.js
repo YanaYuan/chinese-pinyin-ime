@@ -115,15 +115,12 @@ class ChinesePinyinIME {
                 hostname: window.location.hostname,
                 isProduction,
                 hasApiKey: !!this.apiKey,
-                hasApiEndpoint: !!this.apiEndpoint
+                hasApiEndpoint: !!this.apiEndpoint,
+                apiEndpointValue: this.apiEndpoint
             });
             
-            // 在本地开发环境检查API配置
-            if (!isProduction && (!this.apiKey || !this.apiEndpoint)) {
-                throw new Error('API配置未完成，请联系管理员');
-            }
-            
-            if (isProduction) {
+            // 强制使用生产环境路径（临时修复）
+            if (true) {
                 // 使用 Vercel serverless function
                 const response = await fetch('/api/openai', {
                     method: 'POST',
