@@ -21,7 +21,17 @@ export default async function handler(req, res) {
         const apiKey = process.env.AZURE_OPENAI_API_KEY;
         const endpoint = process.env.AZURE_OPENAI_ENDPOINT;
 
+        console.log('Environment check:', {
+            hasApiKey: !!apiKey,
+            hasEndpoint: !!endpoint,
+            endpointPrefix: endpoint ? endpoint.substring(0, 30) + '...' : 'undefined'
+        });
+
         if (!apiKey || !endpoint) {
+            console.error('Missing environment variables:', {
+                AZURE_OPENAI_API_KEY: !!apiKey,
+                AZURE_OPENAI_ENDPOINT: !!endpoint
+            });
             return res.status(500).json({ 
                 error: 'Server configuration incomplete',
                 message: 'Azure OpenAI API configuration missing'
