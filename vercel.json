@@ -1,6 +1,7 @@
 {
   "version": 2,
-  "public": "IME4",
+  "buildCommand": "echo 'Static site, no build needed'",
+  "outputDirectory": "IME4",
   "rewrites": [
     {
       "source": "/",
