@@ -1,8 +1,14 @@
 class ChinesePinyinIME {
     constructor() {
-        // 从环境变量或配置中读取API设置
-        this.apiEndpoint = this.getApiEndpoint();
-        this.apiKey = this.getApiKey();
+        // 强制使用生产环境配置（临时修复）
+        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        if (isProduction) {
+            this.apiEndpoint = '/api/openai';
+            this.apiKey = 'production'; // 不需要，因为使用serverless function
+        } else {
+            this.apiEndpoint = this.getApiEndpoint();
+            this.apiKey = this.getApiKey();
+        }
         
         // 检查API配置是否完整（仅在本地开发环境显示警告）
         const isLocalDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
@@ -160,7 +166,7 @@ class ChinesePinyinIME {
                     presence_penalty: 0
                 };
                 
-                const response = await fetch(this.apiEndpoint, {
+                const response = await fetch('/api/openai', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
