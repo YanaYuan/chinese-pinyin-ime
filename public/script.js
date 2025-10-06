@@ -365,45 +365,30 @@ class ChinesePinyinIME {
     async getOptimizedText(text) {
         const prompt = `请将以下文字改为更口语化、通顺、易理解的表达方式。只返回优化后的文字，不要其他说明：${text}`;
 
-        const requestBody = {
-            messages: [
-                {
-                    role: "system",
-                    content: "你是一个专业的中文表达优化专家。请将用户提供的文字改为更口语化、通顺、易理解的表达方式。"
-                },
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ],
-            max_tokens: 100,
-            temperature: 0.5,
-            top_p: 0.9
-        };
-
-        const response = await fetch(this.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': this.apiKey
+        const messages = [
+            {
+                role: "system",
+                content: "你是一个专业的中文表达优化专家。请将用户提供的文字改为更口语化、通顺、易理解的表达方式。"
             },
-            body: JSON.stringify(requestBody)
-        });
+            {
+                role: "user",
+                content: prompt
+            }
+        ];
 
-        if (!response.ok) {
-            throw new Error(`优化API请求失败: ${response.status} ${response.statusText}`);
-        }
+        try {
+            // 使用统一的API调用方法
+            const content = await this.callOpenAI(messages, {
+                max_tokens: 100,
+                temperature: 0.5
+            });
 
-        const data = await response.json();
-        console.log('优化API响应数据:', data); // 添加调试日志
-        
-        // 检查数据结构是否符合预期
-        if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
-            console.error('优化API响应结构异常:', data);
-            throw new Error('优化API响应格式不正确');
+            console.log('优化API响应:', content);
+            return content.trim();
+        } catch (error) {
+            console.error('优化API调用失败:', error);
+            throw error;
         }
-        
-        return data.choices[0].message.content.trim();
     }
 
     async getExpandedText(text) {
@@ -417,73 +402,58 @@ class ChinesePinyinIME {
 
 现在请处理："${text}"`;
 
-        const requestBody = {
-            messages: [
-                {
-                    role: "system",
-                    content: "帮用户把没说完的话补充完整。请将用户提供的词语开头，续写一句简短自然的话。"
-                },
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ],
-            max_tokens: 80,
-            temperature: 0.7,
-            top_p: 0.9
-        };
-
-        const response = await fetch(this.apiEndpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': this.apiKey
+        const messages = [
+            {
+                role: "system",
+                content: "帮用户把没说完的话补充完整。请将用户提供的词语开头，续写一句简短自然的话。"
             },
-            body: JSON.stringify(requestBody)
-        });
-
-        if (!response.ok) {
-            throw new Error(`扩展API请求失败: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('扩展API响应数据:', data); // 添加调试日志
-        
-        // 检查数据结构是否符合预期
-        if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
-            console.error('扩展API响应结构异常:', data);
-            throw new Error('扩展API响应格式不正确');
-        }
-        
-        let result = data.choices[0].message.content.trim();
-        
-        // 移除引号（如果AI返回时包含了引号）
-        result = result.replace(/^["']|["']$/g, '');
-        
-        // 去除标点符号的辅助函数
-        const removePunctuation = (str) => str.replace(/[，。、！？；：""''「」『』（）【】]/g, '');
-        
-        // 确保结果以原文开头，如果不是则手动添加
-        const textWithoutPunc = removePunctuation(text);
-        const resultWithoutPunc = removePunctuation(result);
-        
-        if (!resultWithoutPunc.startsWith(textWithoutPunc)) {
-            // 如果结果包含原文但不在开头，重新组织
-            if (resultWithoutPunc.includes(textWithoutPunc)) {
-                // 找到原文在结果中的位置，保留其后的内容
-                const index = result.indexOf(textWithoutPunc);
-                if (index > 0) {
-                    const suffix = result.substring(index + textWithoutPunc.length);
-                    result = text + suffix;
-                }
-            } else {
-                // 如果完全不包含原文，直接添加原文和适当的连接
-                const connector = /^[，。、！？]/.test(result) ? '' : '，';
-                result = text + connector + result;
+            {
+                role: "user",
+                content: prompt
             }
+        ];
+
+        try {
+            // 使用统一的API调用方法
+            let result = await this.callOpenAI(messages, {
+                max_tokens: 80,
+                temperature: 0.7
+            });
+
+            console.log('扩展API响应:', result);
+            result = result.trim();
+            
+            // 移除引号（如果AI返回时包含了引号）
+            result = result.replace(/^["']|["']$/g, '');
+            
+            // 去除标点符号的辅助函数
+            const removePunctuation = (str) => str.replace(/[，。、！？；：""''「」『』（）【】]/g, '');
+            
+            // 确保结果以原文开头，如果不是则手动添加
+            const textWithoutPunc = removePunctuation(text);
+            const resultWithoutPunc = removePunctuation(result);
+            
+            if (!resultWithoutPunc.startsWith(textWithoutPunc)) {
+                // 如果结果包含原文但不在开头，重新组织
+                if (resultWithoutPunc.includes(textWithoutPunc)) {
+                    // 找到原文在结果中的位置，保留其后的内容
+                    const index = result.indexOf(textWithoutPunc);
+                    if (index > 0) {
+                        const suffix = result.substring(index + textWithoutPunc.length);
+                        result = text + suffix;
+                    }
+                } else {
+                    // 如果完全不包含原文，直接添加原文和适当的连接
+                    const connector = /^[，。、！？]/.test(result) ? '' : '，';
+                    result = text + connector + result;
+                }
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('扩展API调用失败:', error);
+            throw error;
         }
-        
-        return result;
     }
 
     selectNextOption() {
@@ -1087,48 +1057,33 @@ AI转换：我叫王小明
 现在请处理：`;
 
         try {
-            const requestBody = {
-                messages: [
-                    {
-                        role: "system",
-                        content: "你是一个专业的拼音输入法纠错助手。根据用户提供的纠正信息，修改AI转换结果中的错误部分。"
-                    },
-                    {
-                        role: "user",
-                        content: prompt
-                    }
-                ],
-                max_tokens: 150,
-                temperature: 0.3,
-                top_p: 0.9
-            };
-
-            const response = await fetch(this.apiEndpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'api-key': this.apiKey
+            const messages = [
+                {
+                    role: "system",
+                    content: "你是一个专业的拼音输入法纠错助手。根据用户提供的纠正信息，修改AI转换结果中的错误部分。"
                 },
-                body: JSON.stringify(requestBody)
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ];
+
+            // 使用统一的API调用方法
+            const correctedText = await this.callOpenAI(messages, {
+                max_tokens: 150,
+                temperature: 0.3
             });
-
-            if (!response.ok) {
-                throw new Error(`纠错API请求失败: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const correctedText = data.choices[0].message.content.trim();
             
             // 更新第一个AI候选
             if (this.currentSuggestions.length > 0) {
-                this.currentSuggestions[0] = correctedText;
+                this.currentSuggestions[0] = correctedText.trim();
                 
                 // 重新显示候选，保留生成后续选项的能力
                 // 清空并重置为只包含纠正后的第一个选项
-                this.currentSuggestions = [correctedText];
+                this.currentSuggestions = [correctedText.trim()];
                 this.selectedIndex = 0;
                 this.suggestionsDiv.innerHTML = '';
-                this.createSuggestionItem(correctedText, 0);
+                this.createSuggestionItem(correctedText.trim(), 0);
                 
                 // 确保候选区显示
                 if (!this.suggestionsDiv.classList.contains('show')) {
